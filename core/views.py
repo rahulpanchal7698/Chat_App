@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.contrib.auth import get_user_model
-from .models import Message,ChatRoom,User
-from .serializers import RegisterSerializer,LoginSerializer,UserSerializer
+from .models import Message,ChatRoom,User,FriendRequest
+from .serializers import RegisterSerializer,LoginSerializer,UserSerializer,AcceptFriendSerializer,FriendRequestSerializer
 from rest_framework import generics ,response,status,views,serializers
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
@@ -47,6 +47,49 @@ class GetProfile(views.APIView):
         snippet = self.get_object(uuid)
         serializer = UserSerializer(snippet)
         return response.Response(serializer.data)
+
+class FriendRequestView(views.APIView):
+    serializer_class=FriendRequestSerializer
+    # permission_classes=(IsAuthenticated,)
+    def get_object(self,uuid):
+        try:
+            return User.objects.get(uuid=uuid)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("No User")
+    def post(self,request):
+        serializers=FriendRequestSerializer(data=request.data)
+        if serializers.is_valid():
+            serializers.save()
+            return response.Response(serializers.data, status=status.HTTP_200_OK)
+        return response.Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class FriendRequestAcceptView(views.APIView):
+    # permission_classes = (IsAuthenticated,)
+
+    def get_object(self,uuid):
+        try:
+            return FriendRequest.objects.get(uuid=uuid)
+        except FriendRequest.DoesNotExist:
+            raise serializers.ValidationError("No friend request")
+
+    def get(self, request, uuid):
+        friendrequest = self.get_object(uuid)
+        serializer = AcceptFriendSerializer(friendrequest)
+        return response.Response(serializer.data)
+
+    def post(self, request, uuid):
+        snippet = self.get_object(uuid)
+        data=snippet.accept(request.data['status'])
+        if data is True:
+            return response.Response({"success":"Friend request accepted"}, status=status.HTTP_200_OK)
+        else:
+            return response.Response({"success":"Friend request rejected"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
 # User=get_user_model()
 
 # def hello(request):

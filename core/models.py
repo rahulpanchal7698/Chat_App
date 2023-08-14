@@ -45,6 +45,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True,null=True)
     profile_photo=models.ImageField(upload_to='profile_pictures/')
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    friends_list=models.ManyToManyField('self',blank=True)
 
     USERNAME_FIELD = 'email'
     # REQUIRED_FIELDS = ['username']
@@ -60,7 +61,25 @@ class User(AbstractBaseUser, PermissionsMixin):
             'access': str(refresh.access_token)
         }
     
+class FriendRequest(models.Model):
+    CHOICE_TYPE=(("PENDING","pending"),
+                 ("ACCEPTED","accepted"),
+                 ("DELETED","deleted"))
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    from_friend=models.ForeignKey(User,on_delete=models.CASCADE,related_name='from_friend')
+    to_friend=models.ForeignKey(User,on_delete=models.CASCADE,related_name='to_friend')
+    status=models.CharField(max_length=20,choices=CHOICE_TYPE,default='pending')
 
+    def accept(self,status):
+        if status=='ACCEPTED':
+            self.status='ACCEPTED'
+            self.from_friend.friends_list.add(self.to_friend)
+            self.to_friend.friends_list.add(self.from_friend)
+            self.save()
+            return True
+        else:
+            return False
+    
 
 class ChatRoom(models.Model):
     name=models.CharField(max_length=100,null=False)

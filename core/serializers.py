@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import  User
+from .models import  User,FriendRequest
 from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -64,3 +64,26 @@ class UserSerializer(serializers.ModelSerializer):
         model=User
         fields=["uuid","username","email","first_name","last_name","is_active"]
     
+class FriendRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=FriendRequest
+        fields='__all__'
+    
+    def validate(self,attrs):
+        from_friend=attrs.get("from_friend",'')
+        to_friend=attrs.get("to_friend",'')
+        user=User.objects.get(email=from_friend)
+        print(user.friends_list)
+        if from_friend == to_friend:
+            raise serializers.ValidationError({'recipient': 'You cannot send a friend request to yourself.'})
+        if user.friends_list.filter(email=to_friend):
+            raise serializers.ValidationError({"error":"User is already in you're friend list"})
+        return attrs
+    def create(self,validated_data):
+        return FriendRequest.objects.create(**validated_data)
+    
+class AcceptFriendSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=FriendRequest
+        fields="__all__"
+
