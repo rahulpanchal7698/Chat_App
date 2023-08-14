@@ -3,6 +3,9 @@ import uuid
 from django.contrib.auth.models import (
     AbstractBaseUser, PermissionsMixin,BaseUserManager)
 from rest_framework_simplejwt.tokens import RefreshToken
+import io
+from django.core.files.storage import default_storage as storage
+from PIL import Image
 # Create your models here.
 
 
@@ -82,6 +85,7 @@ class FriendRequest(models.Model):
     
 
 class ChatRoom(models.Model):
+    uuid=models.UUIDField(default=uuid.uuid4,editable=False)
     name=models.CharField(max_length=100,null=False)
     users=models.ManyToManyField(User,blank=True)
     is_active=models.BooleanField(default=True)
@@ -93,12 +97,38 @@ class ChatRoom(models.Model):
 
     
 class Message(models.Model):
+    uuid=models.UUIDField(default=uuid.uuid4,editable=False)
     from_user=models.ForeignKey(User,on_delete=models.CASCADE,related_name='sender_message')
     messages=models.TextField()
     to_user=models.ForeignKey(User,on_delete=models.CASCADE,related_name='reciever_message')
     room=models.ForeignKey(ChatRoom,on_delete=models.CASCADE)
     timesatmp=models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return str(self.from_user)+ '-' +str(self.to_user)
+    
+class GroupChatRoom(models.Model):
+    uuid=models.UUIDField(default=uuid.uuid4,editable=False)
+    image=models.ImageField(upload_to='group_image',null=True,blank=True)
+    name=models.CharField(max_length=100,null=False)
+    users=models.ManyToManyField(User,blank=True)
+    is_active=models.BooleanField(default=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    admin_user=models.ManyToManyField(User,blank=True,related_name='admins')
+    created_by=models.ForeignKey(User,on_delete=models.CASCADE,related_name='creator')
+
+    def __str__(self):
+        return self.name
+
+
+    
+class GroupMessagesModel(models.Model):
+    uuid=models.UUIDField(default=uuid.uuid4,editable=False)
+    from_user=models.ForeignKey(User,on_delete=models.CASCADE,related_name='from_user')
+    messages=models.TextField()
+    room=models.ForeignKey(GroupChatRoom,on_delete=models.CASCADE)
+    timesatmp=models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return str(self.from_user)+ '-' +str(self.to_user)

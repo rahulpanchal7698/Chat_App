@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import  User,FriendRequest
+from .models import  User,FriendRequest,GroupChatRoom,GroupMessagesModel
 from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -86,4 +86,60 @@ class AcceptFriendSerializer(serializers.ModelSerializer):
     class Meta:
         model=FriendRequest
         fields="__all__"
+
+class GroupChatSerializer(serializers.ModelSerializer):
+    # image=serializers.FileField()
+    class Meta:
+        model=GroupChatRoom
+        fields=['name','image','users','admin_user']
+
+
+    def create(self, validated_data):
+        print(validated_data,"ll")
+        admin_users=validated_data.pop('admin_user')
+        user_data=validated_data.pop('users')
+        group_chat_room = GroupChatRoom(**validated_data)
+        group_chat_room.save()
+        if len(user_data)!=0:
+            print("kkk")
+            for user in user_data:
+                print(user)
+                group_chat_room.users.add(user)
+        if len(admin_users)!=0:
+            for admin in admin_users:
+                group_chat_room.admin_user.add(admin)
+        group_chat_room.admin_user.add(validated_data.get('created_by'))
+        group_chat_room.save()
+        return group_chat_room
+    
+class GroupChatListSerializer(serializers.ModelSerializer):
+    admin_user=serializers.SerializerMethodField('get_admin_user')
+    users=serializers.SerializerMethodField('get_users')
+    created_by=serializers.SerializerMethodField('get_created_by')
+    # image=serializers.FileField()
+    class Meta:
+        model=GroupChatRoom
+        fields=['uuid','name','image','users','admin_user','created_at','created_by']
+        # return model
+    @staticmethod
+    def get_admin_user(obj):
+        try:
+            return list(obj.admin_user.values_list("email", flat=True))
+        except Exception as e:
+            print(e)
+            return None
+    @staticmethod
+    def get_users(obj):
+        try:
+            return list(obj.users.values_list("email", flat=True))
+        except Exception as e:
+                print(e)
+                return None
+    @staticmethod
+    def get_created_by(obj):
+        try:
+            return obj.created_by.email
+        except Exception as e:
+                print(e)
+                return None
 

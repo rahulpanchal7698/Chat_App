@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.contrib.auth import get_user_model
-from .models import Message,ChatRoom,User,FriendRequest
-from .serializers import RegisterSerializer,LoginSerializer,UserSerializer,AcceptFriendSerializer,FriendRequestSerializer
+from .models import Message,ChatRoom,User,FriendRequest,GroupChatRoom
+from .serializers import RegisterSerializer,LoginSerializer,UserSerializer,GroupChatListSerializer,GroupChatSerializer,AcceptFriendSerializer,FriendRequestSerializer
 from rest_framework import generics ,response,status,views,serializers
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
@@ -86,10 +86,27 @@ class FriendRequestAcceptView(views.APIView):
         else:
             return response.Response({"success":"Friend request rejected"}, status=status.HTTP_400_BAD_REQUEST)
 
+class GroupChatCreateView(generics.GenericAPIView):
+    serializer_class = GroupChatSerializer
+    permission_classes=[IsAuthenticated]
 
+    def post(self, request):
+        print(request.data)
+        serializers = self.serializer_class(data=request.data)
+        if serializers.is_valid():
+            serializers.save(created_by=request.user)
+            return response.Response(serializers.data, status=status.HTTP_200_OK)
+        return response.Response({"error":"Something went wrong"}, status=status.HTTP_400_BAD_REQUEST)
 
+class GroupListView(generics.GenericAPIView):
+    serializer_class=GroupChatListSerializer
+    permission_classes=[IsAuthenticated]
 
-
+    def get(self,request):
+        user=User.objects.get(email=request.user)
+        groups=GroupChatRoom.objects.filter(created_by=user)
+        serializers=self.serializer_class(groups,many=True)
+        return response.Response(serializers.data, status=status.HTTP_200_OK)
 # User=get_user_model()
 
 # def hello(request):
