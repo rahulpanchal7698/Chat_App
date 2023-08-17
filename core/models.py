@@ -129,6 +129,7 @@ class GroupMessagesModel(models.Model):
     messages=models.TextField()
     room=models.ForeignKey(GroupChatRoom,on_delete=models.CASCADE)
     timesatmp=models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)
 
     def __str__(self):
-        return str(self.from_user)+ '-' +str(self.to_user)
+        return str(self.from_user)

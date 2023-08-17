@@ -109,6 +109,7 @@ class GroupChatSerializer(serializers.ModelSerializer):
             for admin in admin_users:
                 group_chat_room.admin_user.add(admin)
         group_chat_room.admin_user.add(validated_data.get('created_by'))
+        group_chat_room.users.add(validated_data.get('created_by'))
         group_chat_room.save()
         return group_chat_room
     

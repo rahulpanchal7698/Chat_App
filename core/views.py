@@ -1,13 +1,15 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.contrib.auth import get_user_model
-from .models import Message,ChatRoom,User,FriendRequest,GroupChatRoom
+from .models import Message,ChatRoom,User,FriendRequest,GroupChatRoom,GroupMessagesModel
 from .serializers import RegisterSerializer,LoginSerializer,UserSerializer,GroupChatListSerializer,GroupChatSerializer,AcceptFriendSerializer,FriendRequestSerializer
 from rest_framework import generics ,response,status,views,serializers
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 from rest_framework_simplejwt.tokens  import RefreshToken
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
+import json
+
 # Create your views here.
 
 
@@ -112,18 +114,37 @@ class GroupListView(generics.GenericAPIView):
 # def hello(request):
 #     return HttpResponse("Hello")
 
-# def index(request):
-#     users=User.objects.exclude(username=request.user.username)
-#     return render(request, "chats/index.html",{"users":users})
+def index(request):
+    users=User.objects.exclude(username=request.user.username)
+    print(users)
+    return render(request, "chats/index.html",{"users":users})
 
-# def room(request, username):
-#     user_obj=User.objects.get(username=username)
-#     user_objs=User.objects.get(username=username).id
-#     users=User.objects.exclude(username=request.user.username)
-#     if request.user.id >user_objs:
-#         thread_name = f'chat_{request.user.id}-{user_obj.id}'
-#     else:
-#         thread_name = f'chat_{user_obj.id}-{request.user.id}'
-#     room = ChatRoom.objects.get(name=thread_name)
-#     messages_objs=Message.objects.filter(room=room)
-#     return render(request, "chats/room.html", {"user": user_obj.username,"users":users,"user_id":user_objs,"messages_obj":messages_objs})
+def group(request):
+    group=GroupChatRoom.objects.filter(users=request.user)
+    group_messages=GroupMessagesModel.objects.filter(room__in=group).filter(read=False)
+    unread_messages_by_group = {}
+
+    for message in group_messages:
+        groups = message.room
+        if groups not in unread_messages_by_group:
+            unread_messages_by_group[groups] = 0
+        unread_messages_by_group[groups] += 1
+    print(unread_messages_by_group)
+    return render(request, "chats/group.html",{"group":group,"unread_messages":unread_messages_by_group})
+
+def room(request, email):
+    user_obj=User.objects.get(email=email)
+    user_objs=User.objects.get(email=email).id
+    users=User.objects.exclude(email=request.user)
+    if request.user.id >user_objs:
+        thread_name = f'chat_{request.user.id}-{user_obj.id}'
+    else:
+        thread_name = f'chat_{user_obj.id}-{request.user.id}'
+    room = ChatRoom.objects.get(name=thread_name)
+    messages_objs=Message.objects.filter(room=room)
+    return render(request, "chats/room.html", {"user": user_obj.username,"users":users,"user_id":user_objs,"messages_obj":messages_objs})
+
+def grouproom(request,group_name):
+    grouprooms = GroupChatRoom.objects.get(name=group_name)
+    group_messages=GroupMessagesModel.objects.filter(room=grouprooms)
+    return render(request, "chats/groupchatroom.html", {"chatgroup": grouprooms,"group_message":group_messages})

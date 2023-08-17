@@ -19,11 +19,20 @@
                 <div class="contact-table-scroll">
                     <table class="table table-hover">
                         <tbody>
-                            {% for user in users %}
+                            {% for grou in group %}
+                                {% set total_messages = 0 %}
+                                    {% for count in unread_messages.items %}
+                                        {% if group == count %}
+                                            {% set total_messages = total_messages + count %}
+                                        {% endif %}
+                                    {% endfor %}
                             <tr>
                                 <td><img src="{% static 'assets/dp.png' %}" alt="" class="profile-image rounded-circle">
                                 </td>
-                                <td><a href="{% url 'chat' user.email %}">{{user.email}}</a></td>
+                                <td><a href="{% url 'chat/group' grou %}">{{ grou }} </a>
+                                    <small style="color: black;">{{ '{' }}{{ total }}{{ '}' }}</small>
+
+                            </td>
                             </tr>
                             {% endfor %}
 
